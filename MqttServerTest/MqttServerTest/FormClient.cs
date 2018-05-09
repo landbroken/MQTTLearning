@@ -4,6 +4,7 @@
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Implementations;
+using MQTTnet.ManagedClient;
 using MQTTnet.Protocol;
 using System;
 using System.Collections.Generic;
@@ -47,6 +48,7 @@ namespace MqttServerTest
                 mqttClient.Disconnected += MqttClient_Disconnected;
             }
 
+            //非托管客户端
             try
             {
                 //Create TCP based options using the builder.
@@ -88,7 +90,8 @@ namespace MqttServerTest
 
                     return false;
                 };
-                //
+
+                //2.4.0版本的
                 //var options0 = new MqttClientTcpOptions
                 //{
                 //    Server = "127.0.0.1",
@@ -106,6 +109,28 @@ namespace MqttServerTest
                 {
                     txtReceiveMessage.AppendText($"连接到MQTT服务器失败！" + Environment.NewLine + ex.Message + Environment.NewLine);
                 })));
+            }
+
+            //托管客户端
+            try
+            {
+                // Setup and start a managed MQTT client.
+                var options = new ManagedMqttClientOptionsBuilder()
+                    .WithAutoReconnectDelay(TimeSpan.FromSeconds(5))
+                    .WithClientOptions(new MqttClientOptionsBuilder()
+                        .WithClientId("Client_managed")
+                        .WithTcpServer("192.168.88.3", 8223)
+                        .WithTls()
+                        .Build())
+                    .Build();
+
+                var mqttClient = new MqttFactory().CreateManagedMqttClient();
+                await mqttClient.SubscribeAsync(new TopicFilterBuilder().WithTopic("my/topic").Build());
+                await mqttClient.StartAsync(options);
+            }
+            catch (Exception)
+            {
+
             }
         }
 
