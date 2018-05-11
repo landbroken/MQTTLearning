@@ -1,0 +1,7 @@
+G:\mission\CSharpLearning\MQTTLearning\MqttServerTest\SeverTest\bin\Debug\SeverTest.exe.config
+G:\mission\CSharpLearning\MQTTLearning\MqttServerTest\SeverTest\bin\Debug\SeverTest.exe
+G:\mission\CSharpLearning\MQTTLearning\MqttServerTest\SeverTest\bin\Debug\SeverTest.pdb
+G:\mission\CSharpLearning\MQTTLearning\MqttServerTest\SeverTest\bin\Debug\MQTTnet.dll
+G:\mission\CSharpLearning\MQTTLearning\MqttServerTest\SeverTest\obj\Debug\SeverTest.csprojResolveAssemblyReference.cache
+G:\mission\CSharpLearning\MQTTLearning\MqttServerTest\SeverTest\obj\Debug\SeverTest.exe
+G:\mission\CSharpLearning\MQTTLearning\MqttServerTest\SeverTest\obj\Debug\SeverTest.pdb

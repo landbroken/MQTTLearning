@@ -1,10 +1,13 @@
 ﻿using MQTTnet;
+using MQTTnet.Diagnostics;
 using MQTTnet.Protocol;
 using MQTTnet.Server;
 using System;
+using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace MqttServerTest
 {
@@ -14,32 +17,79 @@ namespace MqttServerTest
 
         static void Main(string[] args)
         {
-            StartMqttServer_2_7_5();
+            if (mqttServer == null)
+            {
+                // Configure MQTT server.
+                var optionsBuilder = new MqttServerOptionsBuilder()
+                    .WithConnectionBacklog(100)
+                    .WithDefaultEndpointPort(8222)
+                    .WithConnectionValidator(ValidatingMqttClients())
+                    ;
 
-            MqttNetTrace.TraceMessagePublished += MqttNetTrace_TraceMessagePublished;
-            new Thread(StartMqttServer).Start();
+                // Start a MQTT server.
+                mqttServer = new MqttFactory().CreateMqttServer();
+                mqttServer.ApplicationMessageReceived += MqttServer_ApplicationMessageReceived;
+                mqttServer.ClientConnected += MqttServer_ClientConnected;
+                mqttServer.ClientDisconnected += MqttServer_ClientDisconnected;
 
+                Task.Run(async () => { await mqttServer.StartAsync(optionsBuilder.Build()); });
+                //mqttServer.StartAsync(optionsBuilder.Build());
+                Console.WriteLine("MQTT服务启动成功！");
+            }
+            //Task.Run(async () => { await StartMqttServer_2_7_5(); });
+
+            // Write all trace messages to the console window.
+            MqttNetGlobalLogger.LogMessagePublished += MqttNetTrace_TraceMessagePublished;
+
+            //2.4.0版本
+            //MqttNetTrace.TraceMessagePublished += MqttNetTrace_TraceMessagePublished;
+            //new Thread(StartMqttServer).Start();
             while (true)
             {
                 var inputString = Console.ReadLine().ToLower().Trim();
 
+                if (mqttServer==null)
+                {
+                    Console.WriteLine("Please await mqttServer.StartAsync()");
+                }
+
                 if (inputString == "exit")
                 {
-                    mqttServer?.StopAsync();
+                    Task.Run(async () => { await EndMqttServer_2_7_5(); });
                     Console.WriteLine("MQTT服务已停止！");
                     break;
                 }
                 else if (inputString == "clients")
                 {
-                    foreach (var item in mqttServer.GetConnectedClients())
-                    {
-                        Console.WriteLine($"客户端标识：{item.ClientId}，协议版本：{item.ProtocolVersion}");
-                    }
+                    var connectedClients = mqttServer.GetConnectedClientsAsync();
+
+                    Console.WriteLine($"客户端标识：");
+                    //2.4.0
+                    //foreach (var item in mqttServer.GetConnectedClients())
+                    //{
+                    //    Console.WriteLine($"客户端标识：{item.ClientId}，协议版本：{item.ProtocolVersion}");
+                    //}
+                }
+                else if (inputString.StartsWith("hello:"))
+                {
+                    string msg = inputString.Substring(6);
+                    Topic_Hello(msg);
+                }
+                else if (inputString.StartsWith("control:"))
+                {
+                    string msg = inputString.Substring(8);
+                    Topic_Host_Control(msg);
+                }
+                else if (inputString.StartsWith("subscribe:"))
+                {
+                    string msg = inputString.Substring(10);
+                    Subscribe(msg);
                 }
                 else
                 {
                     Console.WriteLine($"命令[{inputString}]无效！");
                 }
+                Thread.Sleep(100);
             }
         }
 
@@ -47,41 +97,43 @@ namespace MqttServerTest
 
         private static void StartMqttServer()
         {
-            if (mqttServer == null)
-            {
-                try
-                {
-                    var options = new MqttServerOptions
-                    {
-                        ConnectionValidator = p =>
-                        {
-                            if (p.ClientId == "c001")
-                            {
-                                if (p.Username != "u001" || p.Password != "p001")
-                                {
-                                    return MqttConnectReturnCode.ConnectionRefusedBadUsernameOrPassword;
-                                }
-                            }
+            //if (mqttServer == null)
+            //{
+            //    try
+            //    {
+            //        var options = new MqttServerOptions
+            //        {
+            //            ConnectionValidator = p =>
+            //            {
+            //                if (p.ClientId == "c001")
+            //                {
+            //                    if (p.Username != "u001" || p.Password != "p001")
+            //                    {
+            //                        return MqttConnectReturnCode.ConnectionRefusedBadUsernameOrPassword;
+            //                    }
+            //                }
 
-                            return MqttConnectReturnCode.ConnectionAccepted;
-                        }
-                    };
+            //                return MqttConnectReturnCode.ConnectionAccepted;
+            //            }
+            //        };
 
-                    mqttServer = new MqttServerFactory().CreateMqttServer(options) as MqttServer;
-                    mqttServer.ApplicationMessageReceived += MqttServer_ApplicationMessageReceived;
-                    mqttServer.ClientConnected += MqttServer_ClientConnected;
-                    mqttServer.ClientDisconnected += MqttServer_ClientDisconnected;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                    return;
-                }
-            }
+            //        mqttServer = new MqttServerFactory().CreateMqttServer(options) as MqttServer;
+            //        mqttServer.ApplicationMessageReceived += MqttServer_ApplicationMessageReceived;
+            //        mqttServer.ClientConnected += MqttServer_ClientConnected;
+            //        mqttServer.ClientDisconnected += MqttServer_ClientDisconnected;
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        Console.WriteLine(ex.Message);
+            //        return;
+            //    }
+            //}
 
-            mqttServer.StartAsync();
-            Console.WriteLine("MQTT服务启动成功！");
+            //mqttServer.StartAsync();
+            //Console.WriteLine("MQTT服务启动成功！");
         }
+
+        #endregion
 
         private static void MqttServer_ClientConnected(object sender, MqttClientConnectedEventArgs e)
         {
@@ -95,81 +147,145 @@ namespace MqttServerTest
 
         private static void MqttServer_ApplicationMessageReceived(object sender, MqttApplicationMessageReceivedEventArgs e)
         {
-            Console.WriteLine($"客户端[{e.ClientId}]>> 主题：{e.ApplicationMessage.Topic} 负荷：{Encoding.UTF8.GetString(e.ApplicationMessage.Payload)} Qos：{e.ApplicationMessage.QualityOfServiceLevel} 保留：{e.ApplicationMessage.Retain}");
+            Console.WriteLine("### RECEIVED APPLICATION MESSAGE ###");
+            Console.WriteLine($"客户端[{e.ClientId}]>>");
+            Console.WriteLine($"+ Topic = {e.ApplicationMessage.Topic}");
+            Console.WriteLine($"+ Payload = {Encoding.UTF8.GetString(e.ApplicationMessage.Payload)}");
+            Console.WriteLine($"+ QoS = {e.ApplicationMessage.QualityOfServiceLevel}");
+            Console.WriteLine($"+ Retain = {e.ApplicationMessage.Retain}");
+            Console.WriteLine();
         }
 
-        private static void MqttNetTrace_TraceMessagePublished(object sender, MqttNetTraceMessagePublishedEventArgs e)
+        private static void MqttNetTrace_TraceMessagePublished(object sender, MqttNetLogMessagePublishedEventArgs e)
         {
-            /*Console.WriteLine($">> 线程ID：{e.ThreadId} 来源：{e.Source} 跟踪级别：{e.Level} 消息: {e.Message}");
-
-            if (e.Exception != null)
+            var trace = $">> [{e.TraceMessage.Timestamp:O}] [{e.TraceMessage.ThreadId}] [{e.TraceMessage.Source}] [{e.TraceMessage.Level}]: {e.TraceMessage.Message}";
+            if (e.TraceMessage.Exception != null)
             {
-                Console.WriteLine(e.Exception);
-            }*/
-        }
+                trace += Environment.NewLine + e.TraceMessage.Exception.ToString();
+            }
 
-        #endregion
+            Console.WriteLine(trace);
+        }
 
         #region 2.7.5
 
-        private static async void StartMqttServer_2_7_5()
+        private static async Task StartMqttServer_2_7_5()
         {
             if (mqttServer == null)
             {
                 // Configure MQTT server.
-                // Configure MQTT server.
                 var optionsBuilder = new MqttServerOptionsBuilder()
                     .WithConnectionBacklog(100)
-                    .WithDefaultEndpointPort(8222);
+                    .WithDefaultEndpointPort(8222)
+                    .WithConnectionValidator(ValidatingMqttClients())
+                    ;
+
+                var options = optionsBuilder.Build();
 
                 // Start a MQTT server.
-                IMqttServer mqttServer = new MqttFactory().CreateMqttServer();
-                await mqttServer.StartAsync(optionsBuilder.Build());
-                Console.WriteLine("Press any key to exit.");
-                Console.ReadLine();
+                mqttServer = new MqttFactory().CreateMqttServer();
+                mqttServer.ApplicationMessageReceived += MqttServer_ApplicationMessageReceived;
+                mqttServer.ClientConnected += MqttServer_ClientConnected;
+                mqttServer.ClientDisconnected += MqttServer_ClientDisconnected;
+
+                await mqttServer.StartAsync(options);
+                Console.WriteLine("MQTT服务启动成功！");
+            }
+        }
+
+        private static async Task EndMqttServer_2_7_5()
+        {
+            if (mqttServer!=null)
+            {
                 await mqttServer.StopAsync();
             }
-        }
-
-        private static void ValidatingMqttClients()
-        {
-            // Setup client validator.
-            var options = new MqttServerOptions();
-            
-            options.ConnectionValidator = c =>
+            else
             {
-                if (c.ClientId.Length < 5)
-                {
-                    c.ReturnCode = MqttConnectReturnCode.ConnectionRefusedIdentifierRejected;
-                    return;
-                }
-
-                if (c.Username != "username001")
-                {
-                    c.ReturnCode = MqttConnectReturnCode.ConnectionRefusedBadUsernameOrPassword;
-                    return;
-                }
-
-                if (c.Password != "psw001")
-                {
-                    c.ReturnCode = MqttConnectReturnCode.ConnectionRefusedBadUsernameOrPassword;
-                    return;
-                }
-
-                c.ReturnCode = MqttConnectReturnCode.ConnectionAccepted;
-            };
-
-            if (false)
-            {
-                //如果需要加密证书
-                //Usingcertificate(ref options);
+                Console.WriteLine("mqttserver=null");
             }
         }
 
+        private static Action<MqttConnectionValidatorContext> ValidatingMqttClients()
+        {
+            // Setup client validator.    
+            var options =new MqttServerOptions();
+            options.ConnectionValidator = c =>
+            {
+                Dictionary<string, string> c_u = new Dictionary<string, string>();
+                c_u.Add("client001", "username001");
+                c_u.Add("client002", "username002");
+                Dictionary<string, string> u_psw = new Dictionary<string, string>();
+                u_psw.Add("username001", "psw001");
+                u_psw.Add("username002", "psw002");
+
+                if (c_u.ContainsKey(c.ClientId) && c_u[c.ClientId] == c.Username)
+                {
+                    if (u_psw.ContainsKey(c.Username) && u_psw[c.Username] == c.Password)
+                    {
+                        c.ReturnCode = MqttConnectReturnCode.ConnectionAccepted;
+                    }
+                    else
+                    {
+                        c.ReturnCode = MqttConnectReturnCode.ConnectionRefusedBadUsernameOrPassword;
+                    }
+                }
+                else
+                {
+                    c.ReturnCode = MqttConnectReturnCode.ConnectionRefusedIdentifierRejected;
+                }
+            };
+            return options.ConnectionValidator;
+        }
+        
         private static void Usingcertificate(ref MqttServerOptions options)
         {
             var certificate = new X509Certificate(@"C:\certs\test\test.cer", "");
             options.TlsEndpointOptions.Certificate = certificate.Export(X509ContentType.Cert);
+        }
+
+        #endregion
+
+        #region Topic
+
+        private static async void Topic_Hello(string msg)
+        {
+            string topic = "topic/hello";
+
+            //2.4.0版本的
+            //var appMsg = new MqttApplicationMessage(topic, Encoding.UTF8.GetBytes(inputString), MqttQualityOfServiceLevel.AtMostOnce, false);
+            //mqttClient.PublishAsync(appMsg);
+
+            var message = new MqttApplicationMessageBuilder()
+                .WithTopic(topic)
+                .WithPayload(msg)
+                .WithAtMostOnceQoS()
+                .WithRetainFlag()
+                .Build();
+            await mqttServer.PublishAsync(message);
+        }
+
+        private static async void Topic_Host_Control(string msg)
+        {
+            string topic = "topic/host/control";
+
+            var message = new MqttApplicationMessageBuilder()
+                .WithTopic(topic)
+                .WithPayload(msg)
+                .WithAtMostOnceQoS()
+                .WithRetainFlag()
+                .Build();
+            await mqttServer.PublishAsync(message);
+        }
+
+        private static void Subscribe(string topic)
+        {
+            List<TopicFilter> topicFilter = new List<TopicFilter>();
+            topicFilter.Add(new TopicFilterBuilder()
+                .WithTopic(topic)
+                .WithAtMostOnceQoS()
+                .Build());
+            mqttServer.SubscribeAsync("client001", topicFilter);
+            Console.WriteLine($"Subscribe:[{"client001"}]，Topic：{topic}");
         }
 
         #endregion

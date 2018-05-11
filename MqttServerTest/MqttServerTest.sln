@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientTest", "MqttServerTest\ClientTest.csproj", "{7BF81AAC-B435-41E7-9D0B-5A5AAD59A6BE}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeverTest", "SeverTest\SeverTest.csproj", "{E04E5E53-9D13-446F-8BB8-7B751BF56602}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientTest", "ClientTest\ClientTest.csproj", "{7BF81AAC-B435-41E7-9D0B-5A5AAD59A6BE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,14 +13,14 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{7BF81AAC-B435-41E7-9D0B-5A5AAD59A6BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7BF81AAC-B435-41E7-9D0B-5A5AAD59A6BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7BF81AAC-B435-41E7-9D0B-5A5AAD59A6BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7BF81AAC-B435-41E7-9D0B-5A5AAD59A6BE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E04E5E53-9D13-446F-8BB8-7B751BF56602}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E04E5E53-9D13-446F-8BB8-7B751BF56602}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E04E5E53-9D13-446F-8BB8-7B751BF56602}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E04E5E53-9D13-446F-8BB8-7B751BF56602}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7BF81AAC-B435-41E7-9D0B-5A5AAD59A6BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7BF81AAC-B435-41E7-9D0B-5A5AAD59A6BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7BF81AAC-B435-41E7-9D0B-5A5AAD59A6BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7BF81AAC-B435-41E7-9D0B-5A5AAD59A6BE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
