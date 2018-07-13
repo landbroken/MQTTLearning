@@ -16,6 +16,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
+using Test.Communication;
+
 namespace MqttServerTest
 {
     public partial class FormClient : Form
@@ -152,8 +154,8 @@ namespace MqttServerTest
 
                 //Create TCP based options using the builder.
                 var options = new MqttClientOptionsBuilder()
-                    .WithClientId("client001")
-                    .WithTcpServer("127.0.0.1", 8222)
+                    .WithClientId(txtClientId.Text)
+                    .WithTcpServer(txtIp.Text, Convert.ToInt32(txtPort.Text))
                     .WithCredentials(txtUsername.Text, txtPsw.Text)
                     //.WithTls()//服务器端没有启用加密协议，这里用tls的会提示协议异常
                     .WithCleanSession()
@@ -242,8 +244,8 @@ namespace MqttServerTest
                 })));
                 
                 var options = new MqttClientOptionsBuilder()
-                    .WithClientId("client001")
-                    .WithTcpServer("127.0.0.1", 8222)
+                    .WithClientId(txtClientId.Text)
+                    .WithTcpServer(txtIp.Text, Convert.ToInt32(txtPort.Text))
                     .WithCredentials(txtUsername.Text, txtPsw.Text)
                     //.WithTls()
                     .WithCleanSession()
@@ -305,5 +307,85 @@ namespace MqttServerTest
             isReconnect = false;
             Task.Run(async () => { await mqttClient.DisconnectAsync(); });
         }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            
+            Dog dog = new Dog();
+            dog.Alarm += new Dog.AlarmEventHandler(HostHandleAlarm);
+
+            //当前时间，从2008年12月31日23:59:50开始计时
+            DateTime now = new DateTime(2015, 12, 31, 23, 59, 55);
+            DateTime midnight = new DateTime(2016, 1, 1, 0, 0, 0);
+            var ttt = now.ToBinary();
+            var ttt2 = ttt.ToString();
+            var ree = Convert.ToInt64(ttt2);
+            var rrrr = DateTime.FromBinary(ree);
+            var clientId = System.Guid.NewGuid().ToString();
+            System.Threading.Thread.Sleep(100);    //程序暂停一秒
+            var clientId2 = System.Guid.NewGuid().ToString();
+
+            now = DateTime.Now;
+            midnight = now.AddSeconds(6);
+            txtReceiveMessage.AppendText("now: " + now.ToString() + Environment.NewLine);
+            txtReceiveMessage.AppendText("midnight: " + midnight.ToString() + Environment.NewLine);
+            //等待午夜的到来
+            txtReceiveMessage.AppendText("时间一秒一秒地流逝..." + Environment.NewLine);
+            while (now < midnight)
+            {
+                string msg = "当前时间: " + DateTime.Now + Environment.NewLine;
+                msg += "运行次数: " + (TaskCount++).ToString() + Environment.NewLine;
+                txtReceiveMessage.AppendText(msg);
+                Task.Run(async () => { await CompareNowMidnight(); });
+                txtReceiveMessage.AppendText(m_msg+ m_msg2);
+                System.Threading.Thread.Sleep(100);    //程序暂停
+                now = DateTime.Now;                //时间增加
+            }
+
+            //午夜零点小偷到达,看门狗引发Alarm事件
+            txtReceiveMessage.AppendText("\n月黑风高的午夜: " + now + Environment.NewLine);
+            txtReceiveMessage.AppendText("小偷悄悄地摸进了主人的屋内..." + Environment.NewLine);
+            dog.OnAlarm();
+            txtReceiveMessage.AppendText("The End." + Environment.NewLine);
+        }
+
+        static string m_msg = "m_msg" + Environment.NewLine;
+        static string m_msg2 = "m_msg2" + Environment.NewLine;
+        static int TaskCount = 0;
+        static int BeforeCount = 0;
+        static int AlfterCount = 0;
+        private async Task CompareNowMidnight()
+        {
+            m_msg = $">> TaskCount={TaskCount}+BeforeCount={BeforeCount++}+Time={DateTime.Now}{Environment.NewLine}";
+            ///仅阻塞调用CompareNowMidnight的线程，由于本方法是async调用的，因此不影响主线程
+            ///故可能会
+            //System.Threading.Thread.Sleep(2900);    //程序暂停一秒
+            await Task.Delay(TimeSpan.FromMilliseconds(3000));
+            m_msg2 = ($">> TaskCount={TaskCount}+AlfterCount={AlfterCount++}+Time={DateTime.Now}{Environment.NewLine}");
+        }
+
+        void HostHandleAlarm(object sender, EventArgs e)
+        {
+            txtReceiveMessage.AppendText("\n狗报警: 有小偷进来了,汪汪~~~~~~~" + Environment.NewLine);
+            txtReceiveMessage.AppendText("主人: 抓住了小偷！" + Environment.NewLine);
+        }
+
+        //事件发送者
+        class Dog
+        {
+            //1.声明关于事件的委托；
+            public delegate void AlarmEventHandler(object sender, EventArgs e);
+
+            //2.声明事件；   
+            public event AlarmEventHandler Alarm;
+
+            //3.编写引发事件的函数；
+            public void OnAlarm()
+            {
+                this.Alarm?.Invoke(this, new EventArgs());   //发出警报
+            }
+        }
+
+
     }
 }

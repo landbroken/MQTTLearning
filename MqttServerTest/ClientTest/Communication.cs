@@ -5,23 +5,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
-namespace SeverTest
+namespace Test.Communication
 {
     /// <summary>
-    /// client的尝试和form分离
+    /// client的尝试和form分离的草稿，假装自己是一个form
     /// </summary>
-    public class Communication
+    public class Communication : Form
     {
+        private MqttClientInfo info = MqttClientInfo.GetInstance();
+
         private IMqttClient mqttClient = null;
-        private bool isReconnect = true;
         public string ReceiveMsg = "";
         public string FlagMsg = "";
-        public string username = "host002";
-        public string password = "psw002";
-        public string clientId = "client002";
 
-        private async Task Publish()
+        public async Task Publish()
         {
             string topic = "host/datetime";
 
@@ -51,7 +50,7 @@ namespace SeverTest
             await mqttClient.PublishAsync(message);
         }
 
-        private async Task Subscribe()
+        public async Task Subscribe()
         {
             string topic = "slave/datetime";
 
@@ -75,7 +74,7 @@ namespace SeverTest
             FlagMsg += ($"已订阅[{topic}]主题{Environment.NewLine}");
         }
 
-        private async Task ConnectMqttServerAsync()
+        public async Task ConnectMqttServerAsync()
         {
             // Create a new MQTT client.
             if (mqttClient == null)
@@ -93,9 +92,9 @@ namespace SeverTest
             {
                 //Create TCP based options using the builder.
                 var options = new MqttClientOptionsBuilder()
-                    .WithClientId(clientId)
+                    .WithClientId(info.ClientId)
                     .WithTcpServer("127.0.0.1", 8222)
-                    .WithCredentials(username, password)
+                    .WithCredentials(info.Username, info.Password)
                     //.WithTls()//服务器端没有启用加密协议，这里用tls的会提示协议异常
                     .WithCleanSession()
                     .Build();
@@ -132,14 +131,14 @@ namespace SeverTest
             FlagMsg += ("已断开MQTT连接！" + Environment.NewLine);
 
             //Reconnecting
-            if (isReconnect)
+            if (info.IsReconnect)
             {
                 FlagMsg += ("正在尝试重新连接" + Environment.NewLine);
 
                 var options = new MqttClientOptionsBuilder()
-                    .WithClientId(clientId)
+                    .WithClientId(info.ClientId)
                     .WithTcpServer("127.0.0.1", 8222)
-                    .WithCredentials(username, password)
+                    .WithCredentials(info.Username, info.Password)
                     //.WithTls()
                     .WithCleanSession()
                     .Build();
@@ -168,5 +167,125 @@ namespace SeverTest
             ReceiveMsg += ($">> Retain = {e.ApplicationMessage.Retain}{Environment.NewLine}");
         }
 
+    }
+
+    /// <summary>
+    /// 基本信息
+    /// </summary>
+    /// <remarks>
+    /// 试试从库源码里学的写法
+    /// </remarks>
+    public class MqttClientInfo
+    {
+        private bool _isReconnect = true;
+        private string _username = "host001";
+        private string _password = "psw001";
+        private string _clientId = null;
+        private int _port = 1883;//mqtt默认端口
+
+        public bool IsReconnect
+        {
+            get
+            {
+                return _isReconnect;
+            }
+
+            set
+            {
+                _isReconnect = value;
+            }
+        }
+
+        public string Username
+        {
+            get
+            {
+                return _username;
+            }
+
+            set
+            {
+                _username = value;
+            }
+        }
+
+        public string Password
+        {
+            get
+            {
+                return _password;
+            }
+
+            set
+            {
+                _password = value;
+            }
+        }
+
+        public string ClientId
+        {
+            get
+            {
+                return _clientId;
+            }
+
+            set
+            {
+                _clientId = value;
+            }
+        }
+
+        public string Sever { get; set; }
+        public int Port
+        {
+            get { return _port; }
+            set { _port = value; }
+        }
+
+        //创建类的一个内部对象
+        private static MqttClientInfo instance = new MqttClientInfo();
+
+
+        //让构造函数为 private，这样该类就不会被实例化
+        private MqttClientInfo() { }
+
+        //获取唯一可用的对象
+        public static MqttClientInfo GetInstance()
+        {
+            return instance;
+        }
+
+    }
+
+    public class MqttClientInfoBuilder
+    {
+        private bool _isReconnect = true;
+        private string _username = "host001";
+        private string _password = "psw001";
+        private string _clientId = null;
+
+        public MqttClientInfoBuilder WithIsReconnect(bool isReconnect)
+        {
+            this._isReconnect = isReconnect;
+            return this;
+        }
+
+        public MqttClientInfoBuilder WithClientInfo(string clientId, string username, string password)
+        {
+            this._clientId = clientId;
+            this._username = username;
+            this._password = password;
+            return this;
+        }
+
+        public MqttClientInfo Build()
+        {
+            var ret=MqttClientInfo.GetInstance();
+            ret.IsReconnect = this._isReconnect;
+            ret.ClientId=this._clientId ?? System.Guid.NewGuid().ToString();//if=null，取右边的guid
+            ret.Username = this._username;
+            ret.Password = this._password;
+            return ret;
+        }
     }
 }

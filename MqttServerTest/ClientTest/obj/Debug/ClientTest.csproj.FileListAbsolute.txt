@@ -12,9 +12,9 @@ G:\mission\CSharpLearning\MQTTLearning\MqttServerTest\ClientTest\bin\Debug\MqttS
 G:\mission\CSharpLearning\MQTTLearning\MqttServerTest\ClientTest\bin\Debug\MqttServerTest.exe
 G:\mission\CSharpLearning\MQTTLearning\MqttServerTest\ClientTest\bin\Debug\MqttServerTest.pdb
 G:\mission\CSharpLearning\MQTTLearning\MqttServerTest\ClientTest\bin\Debug\MQTTnet.dll
-G:\mission\CSharpLearning\MQTTLearning\MqttServerTest\ClientTest\obj\Debug\ClientTest.csprojResolveAssemblyReference.cache
 G:\mission\CSharpLearning\MQTTLearning\MqttServerTest\ClientTest\obj\Debug\MqttServerTest.FormClient.resources
 G:\mission\CSharpLearning\MQTTLearning\MqttServerTest\ClientTest\obj\Debug\MqttServerTest.Properties.Resources.resources
 G:\mission\CSharpLearning\MQTTLearning\MqttServerTest\ClientTest\obj\Debug\ClientTest.csproj.GenerateResource.Cache
 G:\mission\CSharpLearning\MQTTLearning\MqttServerTest\ClientTest\obj\Debug\MqttServerTest.exe
 G:\mission\CSharpLearning\MQTTLearning\MqttServerTest\ClientTest\obj\Debug\MqttServerTest.pdb
+G:\mission\CSharpLearning\MQTTLearning\MqttServerTest\ClientTest\obj\Debug\ClientTest.csprojResolveAssemblyReference.cache
