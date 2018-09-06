@@ -2,6 +2,7 @@
 using MQTTnet.Diagnostics;
 using MQTTnet.Protocol;
 using MQTTnet.Server;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
@@ -64,6 +65,17 @@ namespace MqttServerTest
                     string msg = inputString.Substring(8);
                     Topic_Host_Control(msg);
                 }
+                else if(inputString.StartsWith("serialize:"))
+                {
+                    AllData data = new AllData();
+                    data.m_data = new EquipmentDataJson();
+                    data.m_data.str_test = "host";
+                    data.m_data.str_arr_test = new string[3] { "h1", "h2", "h3" };
+                    data.m_data.int_test = 5;
+                    data.m_data.int_arr_test = new int[5] { 2, 4, 5, 8, 10 };
+                    string msg = JsonConvert.SerializeObject(data.m_data);
+                    Topic_Serialize(msg);
+                }
                 else if (inputString.StartsWith("subscribe:"))
                 {
                     string msg = inputString.Substring(10);
@@ -91,13 +103,18 @@ namespace MqttServerTest
 
         private static void MqttServer_ApplicationMessageReceived(object sender, MqttApplicationMessageReceivedEventArgs e)
         {
+            string recv = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
             Console.WriteLine("### RECEIVED APPLICATION MESSAGE ###");
             Console.WriteLine($"客户端[{e.ClientId}]>>");
             Console.WriteLine($"+ Topic = {e.ApplicationMessage.Topic}");
-            Console.WriteLine($"+ Payload = {Encoding.UTF8.GetString(e.ApplicationMessage.Payload)}");
+            Console.WriteLine($"+ Payload = {recv}");
             Console.WriteLine($"+ QoS = {e.ApplicationMessage.QualityOfServiceLevel}");
             Console.WriteLine($"+ Retain = {e.ApplicationMessage.Retain}");
             Console.WriteLine();
+            if (e.ApplicationMessage.Topic== "slave/json")
+            {
+                JsonData(recv);
+            }
         }
 
         private static void MqttNetTrace_TraceMessagePublished(object sender, MqttNetLogMessagePublishedEventArgs e)
@@ -222,6 +239,19 @@ namespace MqttServerTest
             await mqttServer.PublishAsync(message);
         }
 
+        private static async void Topic_Serialize(string msg)
+        {
+            string topic = "topic/serialize";
+            
+            var message = new MqttApplicationMessageBuilder()
+                .WithTopic(topic)
+                .WithPayload(msg)
+                .WithAtMostOnceQoS()
+                .WithRetainFlag(false)
+                .Build();
+            await mqttServer.PublishAsync(message);
+        }
+
         /// <summary>
         /// 替指定的clientID订阅指定的内容
         /// </summary>
@@ -236,6 +266,19 @@ namespace MqttServerTest
             //给"client001"订阅了主题为topicFilter的payload
             mqttServer.SubscribeAsync("client001", topicFilter);
             Console.WriteLine($"Subscribe:[{"client001"}]，Topic：{topic}");
+        }
+
+        #endregion
+
+        #region JsonSerialize
+
+        private static void JsonData(string recvPayload)
+        {
+            AllData data = new AllData();
+            data.m_data = (EquipmentDataJson)JsonConvert.DeserializeObject(recvPayload, typeof(EquipmentDataJson));
+            Console.Write($"recv: str_test={data.m_data.str_test}, str_arr_test={data.m_data.str_arr_test}");
+            Console.Write($"recv: int_test={data.m_data.int_test}, int_arr_test={data.m_data.int_arr_test}");
+            Console.WriteLine("");
         }
 
         #endregion
